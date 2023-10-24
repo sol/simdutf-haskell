@@ -3,3 +3,5 @@ packages:
 
 package simdutf
   ghc-options: -Werror
+
+tests: True

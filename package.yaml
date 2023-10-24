@@ -6,14 +6,29 @@ author: Simon Hengel <sol@typeful.net>
 
 ghc-options: -Wall
 
-extra-source-files: vendor/simdutf.h
+extra-source-files:
+  - vendor/simdutf.h
+  - vendor/LICENSE-MIT
+
+dependencies:
+  base: 4.*
 
 library:
-  dependencies:
-    - base
-    - system-cxx-std-lib
   source-dirs: src
   include-dirs: vendor
+  dependencies:
+    system-cxx-std-lib: 1.*
+  cxx-options: -std=c++17
   cxx-sources:
     - vendor/simdutf.cpp
-    - cbits/validate-utf8.cpp
+    - cbits/utf8.cpp
+
+tests:
+  spec:
+    build-tools: hspec-discover
+    main: Spec.hs
+    source-dirs:
+      - test
+    dependencies:
+      - simdutf
+      - hspec == 2.*
