@@ -1,8 +1,13 @@
 spec-version: 0.36.0
 name: simdutf
+version: 0.1.0
+synopsis: A Haskell interface to simdutf
 
 copyright: (c) 2023 Simon Hengel
 author: Simon Hengel <sol@typeful.net>
+
+
+github: sol/simdutf-haskell
 
 ghc-options: -Wall
 
