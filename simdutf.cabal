@@ -1,0 +1,32 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.36.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           simdutf
+version:        0.0.0
+author:         Simon Hengel <sol@typeful.net>
+maintainer:     Simon Hengel <sol@typeful.net>
+copyright:      (c) 2023 Simon Hengel
+license:        MIT
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    vendor/simdutf.h
+
+library
+  exposed-modules:
+      Simd.Utf8
+  hs-source-dirs:
+      src
+  ghc-options: -Wall
+  include-dirs:
+      vendor
+  cxx-sources:
+      vendor/simdutf.cpp
+      cbits/validate-utf8.cpp
+  build-depends:
+      base
+    , system-cxx-std-lib
+  default-language: Haskell2010

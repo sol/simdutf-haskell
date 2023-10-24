@@ -1,0 +1,19 @@
+spec-version: 0.36.0
+name: simdutf
+
+copyright: (c) 2023 Simon Hengel
+author: Simon Hengel <sol@typeful.net>
+
+ghc-options: -Wall
+
+extra-source-files: vendor/simdutf.h
+
+library:
+  dependencies:
+    - base
+    - system-cxx-std-lib
+  source-dirs: src
+  include-dirs: vendor
+  cxx-sources:
+    - vendor/simdutf.cpp
+    - cbits/validate-utf8.cpp
