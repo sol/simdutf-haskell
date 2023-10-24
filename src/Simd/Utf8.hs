@@ -8,8 +8,15 @@ import Foreign.C
 import GHC.Exts
 
 isValid :: ByteArray -> Int -> Int -> Bool
-isValid (ByteArray payload) offset length = result /= 0
+isValid (ByteArray arr) off len = result /= 0
   where
-    result = c_simdutf_validate_utf8 payload (fromIntegral offset) (fromIntegral length)
+    result = c_validate_utf8 arr (fromIntegral off) (fromIntegral len)
 
-foreign import ccall unsafe "_hs_simdutf_validate_utf8" c_simdutf_validate_utf8 :: ByteArray# -> CSize -> CSize -> CBool
+length :: ByteArray -> Int -> Int -> Int
+length (ByteArray arr) off len = fromIntegral result
+  where
+    result = c_count_utf8 arr (fromIntegral off) (fromIntegral len)
+
+foreign import ccall unsafe "_hs_simdutf_validate_utf8" c_validate_utf8 :: ByteArray# -> CSize -> CSize -> CBool
+
+foreign import ccall unsafe "_hs_simdutf_count_utf8" c_count_utf8 :: ByteArray# -> CSize -> CSize -> CSize

@@ -12192,7 +12192,7 @@ inline size_t convert(const char* buf, size_t len, char* latin_output) {
       // range check -
       uint32_t code_point = (leading_byte & 0b00011111) << 6 | (data[pos + 1] & 0b00111111); // assembles the Unicode code point from the two bytes. It does this by discarding the leading 110 and 10 bits from the two bytes, shifting the remaining bits of the first byte, and then combining the results with a bitwise OR operation.
       if (code_point < 0x80 || 0xFF < code_point) {
-        return 0; // We only care about the range 129-255 which is Non-ASCII latin1 characters. A code_point beneath 0x80 is invalid as it's already covered by bytes whose leading bit is zero. 
+        return 0; // We only care about the range 129-255 which is Non-ASCII latin1 characters. A code_point beneath 0x80 is invalid as it's already covered by bytes whose leading bit is zero.
       }
       *latin_output++ = char(code_point);
       pos += 2;
@@ -12343,7 +12343,7 @@ inline size_t convert(const char16_t* buf, size_t len, char* latin_output) {
 
   // Only copy to latin_output if there were no errors
   std::memcpy(latin_output, temp_output.data(), len);
-  
+
   return current_write - temp_output.data();
 }
 
@@ -16761,7 +16761,7 @@ using namespace simd;
       return latin1_output - start;
     }
 
-  }; 
+  };
 }   // utf8_to_latin1 namespace
 }   // unnamed namespace
 }   // namespace arm64
@@ -20522,17 +20522,17 @@ const char32_t* validate_utf32(const char32_t* buf, size_t len) {
 static inline size_t latin1_to_utf8_avx512_vec(__m512i input, size_t input_len, char *utf8_output, int mask_output) {
   __mmask64 nonascii = _mm512_movepi8_mask(input);
   size_t output_size = input_len + (size_t)count_ones(nonascii);
-  
+
   // Mask to denote whether the byte is a leading byte that is not ascii
   __mmask64 sixth =
       _mm512_cmpge_epu8_mask(input, _mm512_set1_epi8(-64)); //binary representation of -64: 1100 0000
-  
+
   const uint64_t alternate_bits = UINT64_C(0x5555555555555555);
   uint64_t ascii = ~nonascii;
   // the bits in ascii are inverted and zeros are interspersed in between them
   uint64_t maskA = ~_pdep_u64(ascii, alternate_bits);
   uint64_t maskB = ~_pdep_u64(ascii>>32, alternate_bits);
-  
+
   // interleave bytes from top and bottom halves (abcd...ABCD -> aAbBcCdD)
   __m512i input_interleaved = _mm512_permutexvar_epi8(_mm512_set_epi32(
     0x3f1f3e1e, 0x3d1d3c1c, 0x3b1b3a1a, 0x39193818,
@@ -20540,35 +20540,35 @@ static inline size_t latin1_to_utf8_avx512_vec(__m512i input, size_t input_len, 
     0x2f0f2e0e, 0x2d0d2c0c, 0x2b0b2a0a, 0x29092808,
     0x27072606, 0x25052404, 0x23032202, 0x21012000
   ), input);
-  
+
   // double size of each byte, and insert the leading byte 1100 0010
 
-/* 
+/*
 upscale the bytes to 16-bit value, adding the 0b11000000 leading byte in the process.
 We adjust for the bytes that have their two most significant bits. This takes care of the first 32 bytes, assuming we interleaved the bytes. */
-  __m512i outputA = _mm512_shldi_epi16(input_interleaved, _mm512_set1_epi8(-62), 8); 
+  __m512i outputA = _mm512_shldi_epi16(input_interleaved, _mm512_set1_epi8(-62), 8);
   outputA = _mm512_mask_add_epi16(
-                                  outputA, 
-                                 (__mmask32)sixth, 
-                                  outputA, 
+                                  outputA,
+                                 (__mmask32)sixth,
+                                  outputA,
                                   _mm512_set1_epi16(1 - 0x4000)); // 1- 0x4000 = 1100 0000 0000 0001????
-  
+
   // in the second 32-bit half, set first or second option based on whether original input is leading byte (second case) or not (first case)
   __m512i leadingB = _mm512_mask_blend_epi16(
-                                              (__mmask32)(sixth>>32), 
+                                              (__mmask32)(sixth>>32),
                                               _mm512_set1_epi16(0x00c2), // 0000 0000 1101 0010
                                               _mm512_set1_epi16(0x40c3));// 0100 0000 1100 0011
   __m512i outputB = _mm512_ternarylogic_epi32(
-                                              input_interleaved, 
-                                              leadingB, 
-                                              _mm512_set1_epi16((short)0xff00), 
+                                              input_interleaved,
+                                              leadingB,
+                                              _mm512_set1_epi16((short)0xff00),
                                               (240 & 170) ^ 204); // (input_interleaved & 0xff00) ^ leadingB
-  
+
   // prune redundant bytes
   outputA = _mm512_maskz_compress_epi8(maskA, outputA);
   outputB = _mm512_maskz_compress_epi8(maskB, outputB);
-  
-  
+
+
   size_t output_sizeA = (size_t)count_ones((uint32_t)nonascii) + 32;
 
   if(mask_output) {
@@ -20589,7 +20589,7 @@ We adjust for the bytes that have their two most significant bits. This takes ca
   }
   return output_size;
 }
- 
+
 static inline size_t latin1_to_utf8_avx512_branch(__m512i input, char *utf8_output) {
   __mmask64 nonascii = _mm512_movepi8_mask(input);
   size_t nonascii_count = (size_t)count_ones(nonascii);
@@ -20599,7 +20599,7 @@ static inline size_t latin1_to_utf8_avx512_branch(__m512i input, char *utf8_outp
     _mm512_storeu_si512(utf8_output, input);
     return 64 + nonascii_count;}
 }
- 
+
 size_t latin1_to_utf8_avx512_start(const char *buf, size_t len, char *utf8_output) {
   char *start = utf8_output;
   size_t pos = 0;
@@ -20664,14 +20664,14 @@ size_t icelake_convert_latin1_to_utf16(const char *latin1_input, size_t len,
 /* begin file src/icelake/icelake_convert_latin1_to_utf32.inl.cpp */
 std::pair<const char*, char32_t*> avx512_convert_latin1_to_utf32(const char* buf, size_t len, char32_t* utf32_output) {
     size_t rounded_len = len & ~0xF;  // Round down to nearest multiple of 16
-    
-    for (size_t i = 0; i < rounded_len; i += 16) { 
+
+    for (size_t i = 0; i < rounded_len; i += 16) {
         // Load 16 Latin1 characters into a 128-bit register
         __m128i in = _mm_loadu_si128((__m128i*)&buf[i]);
-        
+
         // Zero extend each set of 8 Latin1 characters to 16 32-bit integers using vpmovzxbd
         __m512i out = _mm512_cvtepu8_epi32(in);
-        
+
         // Store the results back to memory
         _mm512_storeu_si512((__m512i*)&utf32_output[i], out);
     }
@@ -21166,15 +21166,15 @@ simdutf_warn_unused result implementation::convert_utf8_to_latin1_with_errors(co
 
   // First, try to convert as much as possible using the SIMD implementation.
   inlen = icelake::utf8_to_latin1_avx512(buf, len, latin1_output);
-  
+
   // If we have completely converted the string
   if(inlen == len) {
     return {simdutf::SUCCESS, len};
   }
-  
+
   // Else if there are remaining bytes, use the scalar function to process them.
-  // Note: This is assuming scalar::utf8_to_latin1::convert_with_errors is a function that takes 
-  // the input buffer, length, and output buffer, and returns a result object with an error code 
+  // Note: This is assuming scalar::utf8_to_latin1::convert_with_errors is a function that takes
+  // the input buffer, length, and output buffer, and returns a result object with an error code
   // and the number of characters processed.
   result res = scalar::utf8_to_latin1::convert_with_errors(buf + inlen, len - inlen, latin1_output + inlen);
   res.count += inlen; // Add the number of characters processed by the SIMD implementation
@@ -21729,7 +21729,7 @@ simdutf_warn_unused size_t implementation::count_utf8(const char * input, size_t
   const uint8_t *str = reinterpret_cast<const uint8_t *>(input);
   size_t answer =  length / sizeof(__m512i) * sizeof(__m512i); // Number of 512-bit chunks that fits into the length.
   size_t i = 0;
-  __m512i unrolled_popcount{0}; 
+  __m512i unrolled_popcount{0};
 
   const __m512i continuation = _mm512_set1_epi8(char(0b10111111));
 
@@ -22619,10 +22619,10 @@ std::pair<const char*, char16_t*> avx2_convert_latin1_to_utf16(const char* latin
 
         // Zero extend each byte in xmm0 to word and put it in another xmm register
         __m128i xmm1 = _mm_cvtepu8_epi16(xmm0);
-        
+
         // Shift xmm0 to the right by 8 bytes
         xmm0 = _mm_srli_si128(xmm0, 8);
-        
+
         // Zero extend each byte in the shifted xmm0 to word in xmm0
         xmm0 = _mm_cvtepu8_epi16(xmm0);
 
@@ -22631,10 +22631,10 @@ std::pair<const char*, char16_t*> avx2_convert_latin1_to_utf16(const char* latin
             xmm0 = _mm_shuffle_epi8(xmm0, swap);
             xmm1 = _mm_shuffle_epi8(xmm1, swap);
         }
-        
+
         // Store the contents of xmm1 into the address pointed by (output + i)
         _mm_storeu_si128(reinterpret_cast<__m128i*>(utf16_output + i), xmm1);
-        
+
         // Store the contents of xmm0 into the address pointed by (output + i + 8)
         _mm_storeu_si128(reinterpret_cast<__m128i*>(utf16_output + i + 8), xmm0);
     }
@@ -22646,14 +22646,14 @@ std::pair<const char*, char16_t*> avx2_convert_latin1_to_utf16(const char* latin
 /* begin file src/haswell/avx2_convert_latin1_to_utf32.cpp */
 std::pair<const char*, char32_t*> avx2_convert_latin1_to_utf32(const char* buf, size_t len, char32_t* utf32_output) {
     size_t rounded_len = ((len | 7) ^ 7);  // Round down to nearest multiple of 8
-    
-    for (size_t i = 0; i < rounded_len; i += 8) { 
+
+    for (size_t i = 0; i < rounded_len; i += 8) {
         // Load 8 Latin1 characters into a 64-bit register
         __m128i in = _mm_loadl_epi64((__m128i*)&buf[i]);
-        
+
         // Zero extend each set of 8 Latin1 characters to 8 32-bit integers using vpmovzxbd
         __m256i out = _mm256_cvtepu8_epi32(in);
-        
+
         // Store the results back to memory
         _mm256_storeu_si256((__m256i*)&utf32_output[i], out);
     }
@@ -26178,7 +26178,7 @@ using namespace simd;
       return latin1_output - start;
     }
 
-  }; 
+  };
 }   // utf8_to_latin1 namespace
 }   // unnamed namespace
 }   // namespace haswell
@@ -29050,7 +29050,7 @@ std::pair<const char* const, char* const> sse_convert_latin1_to_utf8(
 
   // each latin1 takes 1-2 utf8 bytes
   // slow path writes useful 8-15 bytes twice (eagerly writes 16 bytes and then adjust the pointer)
-  // so the last write can exceed the utf8_output size by 8-1 bytes 
+  // so the last write can exceed the utf8_output size by 8-1 bytes
   // by reserving 8 extra input bytes, we expect the output to have 8-16 bytes free
   while (latin_input + 16 + 8 <= end) {
     // Load 16 Latin1 characters (16 bytes) into a 128-bit register
@@ -29063,7 +29063,7 @@ std::pair<const char* const, char* const> sse_convert_latin1_to_utf8(
       utf8_output += 16;
       continue;
     }
-    
+
 
     // assuming a/b are bytes and A/B are uint16 of the same value
     // aaaa_aaaa_bbbb_bbbb -> AAAA_AAAA
@@ -29130,7 +29130,7 @@ std::pair<const char*, char32_t*> sse_convert_latin1_to_utf32(const char* buf, s
         __m128i in_shifted2 = _mm_srli_si128(in, 8);
         __m128i in_shifted3 = _mm_srli_si128(in, 12);
 
-        // expand 8-bit to 32-bit unit      
+        // expand 8-bit to 32-bit unit
         __m128i out1 = _mm_cvtepu8_epi32(in);
         __m128i out2 = _mm_cvtepu8_epi32(in_shifted1);
         __m128i out3 = _mm_cvtepu8_epi32(in_shifted2);
@@ -30311,7 +30311,7 @@ std::pair<const char32_t*, char*> sse_convert_utf32_to_utf8(const char32_t* buf,
   const __m128i v_c080 = _mm_set1_epi16((uint16_t)0xc080); //1100 0000 1000 0000
   const __m128i v_ff80 = _mm_set1_epi16((uint16_t)0xff80); //1111 1111 1000 0000
   const __m128i v_ffff0000 = _mm_set1_epi32((uint32_t)0xffff0000); //1111 1111 1111 1111 0000 0000 0000 0000
-  const __m128i v_7fffffff = _mm_set1_epi32((uint32_t)0x7fffffff); //0111 1111 1111 1111 1111 1111 1111 1111 
+  const __m128i v_7fffffff = _mm_set1_epi32((uint32_t)0x7fffffff); //0111 1111 1111 1111 1111 1111 1111 1111
   __m128i running_max = _mm_setzero_si128();
   __m128i forbidden_bytemask = _mm_setzero_si128();
   const size_t safety_margin = 12; // to avoid overruns, see issue https://github.com/simdutf/simdutf/issues/92
@@ -30326,15 +30326,15 @@ std::pair<const char32_t*, char*> sse_convert_utf32_to_utf8(const char32_t* buf,
 
     // Pack 32-bit UTF-32 code units to 16-bit UTF-16 code units with unsigned saturation
     __m128i in_16 = _mm_packus_epi32(
-                                      _mm_and_si128(in, v_7fffffff), 
+                                      _mm_and_si128(in, v_7fffffff),
                                       _mm_and_si128(nextin, v_7fffffff)
-                                      );//in this context pack the two __m128 into a single 
+                                      );//in this context pack the two __m128 into a single
     //By ensuring the highest bit is set to 0(&v_7fffffff), we're making sure all values are interpreted as non-negative, or specifically, the values are within the range of valid Unicode code points.
-    //remember : having leading byte 0 means a positive number by the two complements system. Unicode is well beneath the range where you'll start getting issues so that's OK. 
+    //remember : having leading byte 0 means a positive number by the two complements system. Unicode is well beneath the range where you'll start getting issues so that's OK.
 
     // Try to apply UTF-16 => UTF-8 from ./sse_convert_utf16_to_utf8.cpp
 
-    // Check for ASCII fast path 
+    // Check for ASCII fast path
 
     // ASCII fast path!!!!
       // We eagerly load another 32 bytes, hoping that they will be ASCII too.
@@ -30373,7 +30373,7 @@ std::pair<const char32_t*, char*> sse_convert_utf32_to_utf8(const char32_t* buf,
     }
 
     // no bits set above 7th bit -- find out all the ASCII characters
-    const __m128i one_byte_bytemask = _mm_cmpeq_epi16( // this takes four bytes at a time and compares: 
+    const __m128i one_byte_bytemask = _mm_cmpeq_epi16( // this takes four bytes at a time and compares:
                                                       _mm_and_si128(in_16, v_ff80), // the vector that get only the first 9 bits of each 16-bit/2-byte units
                                                        v_0000 //
                                                        ); // they should be all zero if they are ASCII. E.g. ASCII in UTF32 is of format 0000 0000 0000 0XXX XXXX
@@ -30397,11 +30397,11 @@ std::pair<const char32_t*, char*> sse_convert_utf32_to_utf8(const char32_t* buf,
       // t1 = [000a|aaaa|0000|0000]
       const __m128i t1 = _mm_and_si128(t0, v_1f00); // potentital first utf8 byte
       // t2 = [0000|0000|00bb|bbbb]
-      const __m128i t2 = _mm_and_si128(in_16, v_003f);// potential second utf8 byte 
+      const __m128i t2 = _mm_and_si128(in_16, v_003f);// potential second utf8 byte
       // t3 = [000a|aaaa|00bb|bbbb]
-      const __m128i t3 = _mm_or_si128(t1, t2); // first and second potential utf8 byte together 
+      const __m128i t3 = _mm_or_si128(t1, t2); // first and second potential utf8 byte together
       // t4 = [110a|aaaa|10bb|bbbb]
-      const __m128i t4 = _mm_or_si128(t3, v_c080); // t3 | 1100 0000 1000 0000 = full potential 2-byte utf8 unit 
+      const __m128i t4 = _mm_or_si128(t3, v_c080); // t3 | 1100 0000 1000 0000 = full potential 2-byte utf8 unit
 
       // 2. merge ASCII and 2-byte codewords
       const __m128i utf8_unpacked = _mm_blendv_epi8(t4, in_16, one_byte_bytemask);
@@ -32567,7 +32567,7 @@ using namespace simd;
       return latin1_output - start;
     }
 
-  }; 
+  };
 }   // utf8_to_latin1 namespace
 }   // unnamed namespace
 }   // namespace westmere
@@ -33199,7 +33199,7 @@ simdutf_warn_unused size_t implementation::utf8_length_from_latin1(const char * 
       __m128i input4 = _mm_loadu_si128((const __m128i *)(str + i + 3*sizeof(__m128i)));
       __m128i input12 = _mm_add_epi8(
                                       _mm_cmpgt_epi8(
-                                                    _mm_setzero_si128(), 
+                                                    _mm_setzero_si128(),
                                                     input1),
                                       _mm_cmpgt_epi8(
                                                     _mm_setzero_si128(),
