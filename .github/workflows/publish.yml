@@ -1,5 +1,8 @@
 name: publish
 
+permissions:
+  contents: write
+
 on:
   push:
     branches:
@@ -10,8 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
-      - run: cabal check
 
       - uses: sol/haskell-autotag@v1
         id: autotag
