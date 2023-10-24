@@ -1,0 +1,5 @@
+packages:
+  simdutf.cabal
+
+package simdutf
+  ghc-options: -Werror
